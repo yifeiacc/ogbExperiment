@@ -86,6 +86,7 @@ class EdgeReluV2(MessagePassing):
         alpha = F.leaky_relu(alpha, self.negative_slope)
 
         gamma = self.degree[index]/3
+        self.degree = None
         alpha = alpha / 10
         alpha = softmax(alpha, index, ptr, size_i) * gamma
 
