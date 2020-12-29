@@ -103,7 +103,6 @@ class SAGE(torch.nn.Module):
         self.bns = torch.nn.ModuleList()
         self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
         self.ReLU = torch.nn.ModuleList()
-
         if self.kind == "ReLU":
             self.ReLU.append(xReLU("ReLU"))
         elif self.kind == "ELU":

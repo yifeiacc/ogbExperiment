@@ -68,9 +68,12 @@ class EdgeReluV2(MessagePassing):
                 edge_index, _ = add_self_loops(edge_index, num_nodes=num_nodes)
             elif isinstance(edge_index, SparseTensor):
                 edge_index = set_diag(edge_index)
-        
-        _, col = edge_index[0], edge_index[1]
-        self.degree = degree(col)
+
+        if isinstance(edge_index, SparseTensor):
+            self.degree = edge_index.sum(dim=0)
+        else:
+            _, col = edge_index[0], edge_index[1]
+            self.degree = degree(col)
 
         theta = self.get_relu_coefs(x, edge_index)
         self.theta = theta.view(-1, self.channels, 2 * self.k)
