@@ -202,6 +202,7 @@ def main():
     print(args)
 
     device = f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'
     device = torch.device(device)
 
     dataset = PygNodePropPredDataset(name='ogbn-arxiv',
