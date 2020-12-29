@@ -9,21 +9,55 @@ from torch_geometric.nn import GCNConv, SAGEConv
 from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
 
 from logger import Logger
+from ReLU import EdgeReluV2, DyReLUC
+
+
+class xReLU(torch.nn.Module):
+    def __init__(self, kind):
+        super(xReLU, self).__init__()
+        self.kind = kind
+
+    def forward(self, x, edge_index):
+        if self.kind == "ReLU":
+            return F.relu(x)
+        elif self.kind == "PReLU":
+            return F.prelu(x, weight=0.25)
+        elif self.kind == "ELU":
+            return F.elu(x, alpha=1)
+        elif self.kind == "LReLU":
+            return F.leaky_relu(x, negative_slope=0.01)
+        else:
+            return x
 
 
 class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
-                 dropout):
+                 dropout, kind="ReLU"):
         super(GCN, self).__init__()
 
         self.convs = torch.nn.ModuleList()
         self.convs.append(GCNConv(in_channels, hidden_channels, cached=True))
         self.bns = torch.nn.ModuleList()
         self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        self.ReLU = torch.nn.ModuleList()
         for _ in range(num_layers - 2):
             self.convs.append(
                 GCNConv(hidden_channels, hidden_channels, cached=True))
             self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+
+            if self.kind == "ReLU":
+                self.ReLU.append(xReLU("ReLU"))
+            elif self.kind == "ELU":
+                self.ReLU.append(xReLU("ELU"))
+            elif self.kind == "PReLU":
+                self.ReLU.append(xReLU("PReLU"))
+            elif self.kind == "LReLU":
+                self.ReLU.append(xReLU("LReLU"))
+            elif self.kind == "GraphReLUNode":
+                self.ReLU.append(DyReLUC(hidden_channels))
+            elif self.kind == "GraphReLUEdge":
+                self.ReLU.append(EdgeReluV2(hidden_channels))
+
         self.convs.append(GCNConv(hidden_channels, out_channels, cached=True))
 
         self.dropout = dropout
@@ -38,7 +72,7 @@ class GCN(torch.nn.Module):
         for i, conv in enumerate(self.convs[:-1]):
             x = conv(x, adj_t)
             x = self.bns[i](x)
-            x = F.relu(x)
+            x = self.ReLU[i](x, adj_t)
             x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.convs[-1](x, adj_t)
         return x.log_softmax(dim=-1)
@@ -53,9 +87,22 @@ class SAGE(torch.nn.Module):
         self.convs.append(SAGEConv(in_channels, hidden_channels))
         self.bns = torch.nn.ModuleList()
         self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+        self.ReLU = torch.nn.ModuleList()
         for _ in range(num_layers - 2):
             self.convs.append(SAGEConv(hidden_channels, hidden_channels))
             self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
+            if self.kind == "ReLU":
+                self.ReLU.append(xReLU("ReLU"))
+            elif self.kind == "ELU":
+                self.ReLU.append(xReLU("ELU"))
+            elif self.kind == "PReLU":
+                self.ReLU.append(xReLU("PReLU"))
+            elif self.kind == "LReLU":
+                self.ReLU.append(xReLU("LReLU"))
+            elif self.kind == "GraphReLUNode":
+                self.ReLU.append(DyReLUC(hidden_channels))
+            elif self.kind == "GraphReLUEdge":
+                self.ReLU.append(EdgeReluV2(hidden_channels))
         self.convs.append(SAGEConv(hidden_channels, out_channels))
 
         self.dropout = dropout
@@ -70,7 +117,7 @@ class SAGE(torch.nn.Module):
         for i, conv in enumerate(self.convs[:-1]):
             x = conv(x, adj_t)
             x = self.bns[i](x)
-            x = F.relu(x)
+            x = self.ReLU[i](x, adj_t)
             x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.convs[-1](x, adj_t)
         return x.log_softmax(dim=-1)
