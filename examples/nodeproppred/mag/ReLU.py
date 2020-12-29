@@ -69,9 +69,6 @@ class EdgeReluV2(MessagePassing):
             elif isinstance(edge_index, SparseTensor):
                 edge_index = set_diag(edge_index)
 
-        if isinstance(edge_index, SparseTensor):
-            edge_index = edge_index.to_dense()
-        
         _, col = edge_index[0], edge_index[1]
         self.degree = degree(col)
 
