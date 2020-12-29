@@ -16,12 +16,13 @@ class xReLU(torch.nn.Module):
     def __init__(self, kind):
         super(xReLU, self).__init__()
         self.kind = kind
+        self.PReLU = torch.nn.PReLU()
 
     def forward(self, x, edge_index):
         if self.kind == "ReLU":
             return F.relu(x)
         elif self.kind == "PReLU":
-            return F.prelu(x, weight=0.25)
+            return self.PReLU(x)
         elif self.kind == "ELU":
             return F.elu(x, alpha=1)
         elif self.kind == "LReLU":
@@ -34,12 +35,12 @@ class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
                  dropout, kind="ReLU"):
         super(GCN, self).__init__()
-
         self.convs = torch.nn.ModuleList()
         self.convs.append(GCNConv(in_channels, hidden_channels, cached=True))
         self.bns = torch.nn.ModuleList()
         self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
         self.ReLU = torch.nn.ModuleList()
+        self.kind = kind
         for _ in range(num_layers - 2):
             self.convs.append(
                 GCNConv(hidden_channels, hidden_channels, cached=True))
@@ -80,9 +81,9 @@ class GCN(torch.nn.Module):
 
 class SAGE(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
-                 dropout):
+                 dropout, kind="ReLU"):
         super(SAGE, self).__init__()
-
+        self.kind = kind
         self.convs = torch.nn.ModuleList()
         self.convs.append(SAGEConv(in_channels, hidden_channels))
         self.bns = torch.nn.ModuleList()
@@ -169,6 +170,7 @@ def main():
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--epochs', type=int, default=500)
     parser.add_argument('--runs', type=int, default=10)
+    parser.add_argument('--kind', type=str, default="ReLU")
     args = parser.parse_args()
     print(args)
 
@@ -188,11 +190,11 @@ def main():
     if args.use_sage:
         model = SAGE(data.num_features, args.hidden_channels,
                      dataset.num_classes, args.num_layers,
-                     args.dropout).to(device)
+                     args.dropout, kind=args.kind).to(device)
     else:
         model = GCN(data.num_features, args.hidden_channels,
                     dataset.num_classes, args.num_layers,
-                    args.dropout).to(device)
+                    args.dropout, kind=args.kind).to(device)
 
     evaluator = Evaluator(name='ogbn-arxiv')
     logger = Logger(args.runs, args)
