@@ -41,6 +41,20 @@ class GCN(torch.nn.Module):
         self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
         self.ReLU = torch.nn.ModuleList()
         self.kind = kind
+
+        if self.kind == "ReLU":
+            self.ReLU.append(xReLU("ReLU"))
+        elif self.kind == "ELU":
+            self.ReLU.append(xReLU("ELU"))
+        elif self.kind == "PReLU":
+            self.ReLU.append(xReLU("PReLU"))
+        elif self.kind == "LReLU":
+            self.ReLU.append(xReLU("LReLU"))
+        elif self.kind == "GraphReLUNode":
+            self.ReLU.append(DyReLUC(hidden_channels))
+        elif self.kind == "GraphReLUEdge":
+            self.ReLU.append(EdgeReluV2(hidden_channels))
+        
         for _ in range(num_layers - 2):
             self.convs.append(
                 GCNConv(hidden_channels, hidden_channels, cached=True))
@@ -89,6 +103,20 @@ class SAGE(torch.nn.Module):
         self.bns = torch.nn.ModuleList()
         self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
         self.ReLU = torch.nn.ModuleList()
+
+        if self.kind == "ReLU":
+            self.ReLU.append(xReLU("ReLU"))
+        elif self.kind == "ELU":
+            self.ReLU.append(xReLU("ELU"))
+        elif self.kind == "PReLU":
+            self.ReLU.append(xReLU("PReLU"))
+        elif self.kind == "LReLU":
+            self.ReLU.append(xReLU("LReLU"))
+        elif self.kind == "GraphReLUNode":
+            self.ReLU.append(DyReLUC(hidden_channels))
+        elif self.kind == "GraphReLUEdge":
+            self.ReLU.append(EdgeReluV2(hidden_channels))
+
         for _ in range(num_layers - 2):
             self.convs.append(SAGEConv(hidden_channels, hidden_channels))
             self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
