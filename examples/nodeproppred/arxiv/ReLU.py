@@ -69,11 +69,11 @@ class EdgeReluV2(MessagePassing):
             elif isinstance(edge_index, SparseTensor):
                 edge_index = set_diag(edge_index)
 
-        if isinstance(edge_index, SparseTensor):
-            self.degree = edge_index.sum(dim=0)
-        else:
-            _, col = edge_index[0], edge_index[1]
-            self.degree = degree(col)
+        # if isinstance(edge_index, SparseTensor):
+        #     self.degree = edge_index.sum(dim=0)
+        # else:
+        #     _, col = edge_index[0], edge_index[1]
+        #     self.degree = degree(col)
 
         theta = self.get_relu_coefs(x, edge_index)
         self.theta = theta.view(-1, self.channels, 2 * self.k)
@@ -85,10 +85,10 @@ class EdgeReluV2(MessagePassing):
         alpha = alpha_j if alpha_i is None else alpha_j + alpha_i
         alpha = F.leaky_relu(alpha, self.negative_slope)
 
-        gamma = self.degree[index]/3
+        # gamma = self.degree[index]/3
         self.degree = None
         alpha = alpha / 10
-        alpha = softmax(alpha, index, ptr, size_i) * gamma
+        alpha = softmax(alpha, index, ptr, size_i) #* gamma
 
         alpha = torch.min(alpha, torch.ones_like(alpha))
 
